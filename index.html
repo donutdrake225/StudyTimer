@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Study Timer">
+<meta name="theme-color" content="#1a1a2e">
+<title>Study Timer</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --surface: #1a1a2e;
+    --surface-2: #242442;
+    --text: #e8e6f0;
+    --text-dim: #8886a0;
+    --accent: #f0a050;
+    --accent-glow: rgba(240, 160, 80, 0.15);
+    --green: #5ec269;
+    --green-glow: rgba(94, 194, 105, 0.15);
+    --red: #e05555;
+    --radius: 16px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .app {
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 20px 20px 100px;
+    min-height: 100dvh;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0 24px;
+  }
+
+  .header h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text-dim);
+  }
+
+  .settings-btn {
+    background: var(--surface);
+    border: 1px solid var(--surface-2);
+    color: var(--text-dim);
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .settings-btn:hover { background: var(--surface-2); }
+  .settings-btn svg { width: 18px; height: 18px; }
+
+  /* Today card */
+  .today-card {
+    background: var(--surface);
+    border: 1px solid var(--surface-2);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .today-label {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+  }
+
+  .timer-display {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 3.2rem;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+    transition: color 0.3s;
+  }
+
+  .timer-display.active {
+    color: var(--accent);
+  }
+
+  .session-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+    min-height: 1.2em;
+  }
+
+  /* Progress bar */
+  .progress-container {
+    background: rgba(255,255,255,0.05);
+    border-radius: 6px;
+    height: 8px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--accent), #f0c050);
+    transition: width 0.5s ease;
+    min-width: 0;
+  }
+
+  .progress-bar.complete {
+    background: linear-gradient(90deg, var(--green), #7dd888);
+  }
+
+  .goal-text {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  .goal-text span {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* Big button */
+  .toggle-btn {
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s;
+    margin-bottom: 16px;
+    letter-spacing: 0.02em;
+  }
+
+  .toggle-btn.start {
+    background: var(--accent);
+    color: #1a1a2e;
+    box-shadow: 0 4px 24px var(--accent-glow);
+  }
+  .toggle-btn.start:active {
+    transform: scale(0.97);
+    box-shadow: 0 2px 12px var(--accent-glow);
+  }
+
+  .toggle-btn.stop {
+    background: var(--red);
+    color: #fff;
+    box-shadow: 0 4px 24px rgba(224, 85, 85, 0.2);
+  }
+  .toggle-btn.stop:active {
+    transform: scale(0.97);
+  }
+
+  /* Streak & stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--surface-2);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+
+  .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .stat-value.streak { color: var(--accent); }
+  .stat-value.sessions { color: var(--green); }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* Log section */
+  .log-section h2 {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+  }
+
+  .log-empty {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    padding: 32px 0;
+  }
+
+  .log-entry {
+    background: var(--surface);
+    border: 1px solid var(--surface-2);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .log-date {
+    font-size: 0.85rem;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .log-date small {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    font-weight: 400;
+    margin-top: 2px;
+  }
+
+  .log-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.95rem;
+    font-weight: 400;
+  }
+
+  .log-time.met { color: var(--green); }
+  .log-time.unmet { color: var(--text-dim); }
+
+  .goal-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .goal-badge.met { background: var(--green-glow); color: var(--green); }
+
+  /* Settings modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--surface-2);
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 28px 24px 40px;
+    width: 100%;
+    max-width: 420px;
+    animation: slideUp 0.3s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .modal h2 {
+    font-size: 1rem;
+    margin-bottom: 20px;
+    font-weight: 600;
+  }
+
+  .modal label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .modal input[type="number"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--surface-2);
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem;
+    margin-bottom: 20px;
+    outline: none;
+  }
+  .modal input:focus { border-color: var(--accent); }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .modal-actions button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .btn-cancel {
+    background: var(--surface-2);
+    color: var(--text-dim);
+  }
+
+  .btn-save {
+    background: var(--accent);
+    color: #1a1a2e;
+  }
+
+  .export-btn {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--surface-2);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: all 0.2s;
+  }
+  .export-btn:hover { background: var(--surface-2); color: var(--text); }
+
+  .clear-btn {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid rgba(224, 85, 85, 0.3);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--red);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: all 0.2s;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>study timer</h1>
+    <button class="settings-btn" onclick="openSettings()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/><path d="M12 1v4m0 14v4m-8.66-3.34 2.83-2.83m11.66-5.66 2.83-2.83M1 12h4m14 0h4M3.34 5.34l2.83 2.83m11.66 5.66 2.83 2.83"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="today-card">
+    <div class="today-label" id="todayLabel">Today</div>
+    <div class="timer-display" id="timerDisplay">0:00:00</div>
+    <div class="session-time" id="sessionTime"></div>
+    <div class="progress-container">
+      <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+    </div>
+    <div class="goal-text">
+      <span id="progressText">0:00</span> / <span id="goalDisplay">4:00:00</span> goal
+    </div>
+  </div>
+
+  <button class="toggle-btn start" id="toggleBtn" onclick="toggle()">Start Studying</button>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-value streak" id="streakValue">0</div>
+      <div class="stat-label">Day Streak</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value sessions" id="sessionsValue">0</div>
+      <div class="stat-label">Sessions Today</div>
+    </div>
+  </div>
+
+  <div class="log-section">
+    <h2>Recent Days</h2>
+    <div id="logList">
+      <div class="log-empty">No study sessions logged yet.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <h2>Settings</h2>
+    <label for="goalInput">Daily Goal (hours)</label>
+    <input type="number" id="goalInput" min="0.5" max="24" step="0.5" value="4">
+    <button class="export-btn" onclick="exportData()">Export Log as CSV</button>
+    <button class="clear-btn" onclick="clearAllData()">Clear All Data</button>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeSettings()">Cancel</button>
+      <button class="btn-save" onclick="saveSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---- State ----
+  const STATE_KEY = 'studyTimerState';
+  let state = loadState();
+  let tickInterval = null;
+
+  function defaultState() {
+    return {
+      goalHours: 4,
+      sessions: [],    // { start: timestamp, end: timestamp|null }
+      isRunning: false,
+      currentStart: null
+    };
+  }
+
+  function loadState() {
+    try {
+      const saved = localStorage.getItem(STATE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return { ...defaultState(), ...parsed };
+      }
+    } catch(e) {}
+    return defaultState();
+  }
+
+  function saveState() {
+    localStorage.setItem(STATE_KEY, JSON.stringify(state));
+  }
+
+  // ---- Day boundary logic: 3am ----
+  function getStudyDay(timestamp) {
+    const d = new Date(timestamp);
+    // If before 3am, it belongs to the previous calendar day
+    if (d.getHours() < 3) {
+      d.setDate(d.getDate() - 1);
+    }
+    return d.toISOString().slice(0, 10); // YYYY-MM-DD
+  }
+
+  function getStudyDayLabel(dayStr) {
+    const today = getStudyDay(Date.now());
+    const yesterday = (() => {
+      const d = new Date();
+      if (d.getHours() < 3) d.setDate(d.getDate() - 1);
+      d.setDate(d.getDate() - 1);
+      return d.toISOString().slice(0, 10);
+    })();
+
+    if (dayStr === today) return 'Today';
+    if (dayStr === yesterday) return 'Yesterday';
+
+    const date = new Date(dayStr + 'T12:00:00');
+    const options = { weekday: 'short', month: 'short', day: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
+  }
+
+  // ---- Time helpers ----
+  function formatTime(ms) {
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+
+  function formatTimeShort(ms) {
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    return `${h}:${String(m).padStart(2,'0')}`;
+  }
+
+  // ---- Calculate totals per day ----
+  function getDayTotals() {
+    const days = {};
+    const now = Date.now();
+
+    for (const session of state.sessions) {
+      const end = session.end || now;
+      const day = getStudyDay(session.start);
+      if (!days[day]) days[day] = { total: 0, sessions: 0 };
+      days[day].total += (end - session.start);
+      days[day].sessions++;
+    }
+
+    return days;
+  }
+
+  function getTodayTotal() {
+    const today = getStudyDay(Date.now());
+    const days = getDayTotals();
+    return days[today]?.total || 0;
+  }
+
+  function getTodaySessions() {
+    const today = getStudyDay(Date.now());
+    const days = getDayTotals();
+    return days[today]?.sessions || 0;
+  }
+
+  // ---- Streak calculation ----
+  function calculateStreak() {
+    const days = getDayTotals();
+    const goalMs = state.goalHours * 3600000;
+    const today = getStudyDay(Date.now());
+
+    // Build sorted list of day strings
+    const sortedDays = Object.keys(days).sort().reverse();
+
+    let streak = 0;
+    const d = new Date();
+    if (d.getHours() < 3) d.setDate(d.getDate() - 1);
+
+    // Start from today
+    let checkDate = new Date(d);
+
+    for (let i = 0; i < 365; i++) {
+      const dayStr = checkDate.toISOString().slice(0, 10);
+      const dayData = days[dayStr];
+
+      if (dayData && dayData.total >= goalMs) {
+        streak++;
+      } else if (dayStr === today) {
+        // Today doesn't break streak if not yet met (day is still ongoing)
+      } else {
+        break;
+      }
+
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+
+    return streak;
+  }
+
+  // ---- Toggle study session ----
+  function toggle() {
+    if (state.isRunning) {
+      // Stop
+      const activeSession = state.sessions.find(s => s.end === null);
+      if (activeSession) {
+        activeSession.end = Date.now();
+      }
+      state.isRunning = false;
+      state.currentStart = null;
+      stopTick();
+    } else {
+      // Start
+      const now = Date.now();
+      state.sessions.push({ start: now, end: null });
+      state.isRunning = true;
+      state.currentStart = now;
+      startTick();
+    }
+    saveState();
+    render();
+  }
+
+  // ---- Tick for live updates ----
+  function startTick() {
+    if (tickInterval) return;
+    tickInterval = setInterval(() => render(), 1000);
+  }
+
+  function stopTick() {
+    if (tickInterval) {
+      clearInterval(tickInterval);
+      tickInterval = null;
+    }
+  }
+
+  // ---- Render UI ----
+  function render() {
+    const todayTotal = getTodayTotal();
+    const goalMs = state.goalHours * 3600000;
+    const progress = Math.min((todayTotal / goalMs) * 100, 100);
+    const goalMet = todayTotal >= goalMs;
+
+    // Today label
+    const todayDay = getStudyDay(Date.now());
+    document.getElementById('todayLabel').textContent = getStudyDayLabel(todayDay);
+
+    // Timer display (total today)
+    const timerEl = document.getElementById('timerDisplay');
+    timerEl.textContent = formatTime(todayTotal);
+    timerEl.classList.toggle('active', state.isRunning);
+
+    // Current session time
+    const sessionEl = document.getElementById('sessionTime');
+    if (state.isRunning) {
+      const activeSession = state.sessions.find(s => s.end === null);
+      if (activeSession) {
+        sessionEl.textContent = `session: ${formatTime(Date.now() - activeSession.start)}`;
+      }
+    } else {
+      sessionEl.textContent = '';
+    }
+
+    // Progress bar
+    const bar = document.getElementById('progressBar');
+    bar.style.width = `${progress}%`;
+    bar.classList.toggle('complete', goalMet);
+
+    // Progress text
+    document.getElementById('progressText').textContent = formatTime(todayTotal);
+    document.getElementById('goalDisplay').textContent = formatTime(goalMs);
+
+    // Button
+    const btn = document.getElementById('toggleBtn');
+    if (state.isRunning) {
+      btn.textContent = 'Stop Studying';
+      btn.className = 'toggle-btn stop';
+    } else {
+      btn.textContent = 'Start Studying';
+      btn.className = 'toggle-btn start';
+    }
+
+    // Stats
+    document.getElementById('streakValue').textContent = calculateStreak();
+    document.getElementById('sessionsValue').textContent = getTodaySessions();
+
+    // Log
+    renderLog();
+  }
+
+  function renderLog() {
+    const days = getDayTotals();
+    const goalMs = state.goalHours * 3600000;
+    const sorted = Object.entries(days).sort((a, b) => b[0].localeCompare(a[0]));
+    const container = document.getElementById('logList');
+
+    if (sorted.length === 0) {
+      container.innerHTML = '<div class="log-empty">No study sessions logged yet.</div>';
+      return;
+    }
+
+    container.innerHTML = sorted.slice(0, 14).map(([day, data]) => {
+      const met = data.total >= goalMs;
+      return `
+        <div class="log-entry">
+          <div class="log-date">
+            ${getStudyDayLabel(day)}
+            <small>${day}</small>
+          </div>
+          <div>
+            <span class="log-time ${met ? 'met' : 'unmet'}">${formatTime(data.total)}</span>
+            ${met ? '<span class="goal-badge met">✓ goal</span>' : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ---- Settings ----
+  function openSettings() {
+    document.getElementById('goalInput').value = state.goalHours;
+    document.getElementById('settingsModal').classList.add('open');
+  }
+
+  function closeSettings() {
+    document.getElementById('settingsModal').classList.remove('open');
+  }
+
+  function saveSettings() {
+    const val = parseFloat(document.getElementById('goalInput').value);
+    if (val && val > 0 && val <= 24) {
+      state.goalHours = val;
+      saveState();
+      render();
+    }
+    closeSettings();
+  }
+
+  // Close modal on overlay click
+  document.getElementById('settingsModal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeSettings();
+  });
+
+  // ---- Export CSV ----
+  function exportData() {
+    const days = getDayTotals();
+    const goalMs = state.goalHours * 3600000;
+    const sorted = Object.entries(days).sort((a, b) => a[0].localeCompare(b[0]));
+
+    let csv = 'Date,Total Time,Hours,Goal Met\n';
+    for (const [day, data] of sorted) {
+      const hours = (data.total / 3600000).toFixed(2);
+      const met = data.total >= goalMs ? 'Yes' : 'No';
+      csv += `${day},${formatTime(data.total)},${hours},${met}\n`;
+    }
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `study-log-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    closeSettings();
+  }
+
+  // ---- Clear all data ----
+  function clearAllData() {
+    if (confirm('Are you sure you want to clear all study data? This cannot be undone.')) {
+      state = defaultState();
+      saveState();
+      stopTick();
+      render();
+      closeSettings();
+    }
+  }
+
+  // ---- Auto-recover running state ----
+  if (state.isRunning) {
+    const activeSession = state.sessions.find(s => s.end === null);
+    if (activeSession) {
+      startTick();
+    } else {
+      state.isRunning = false;
+      state.currentStart = null;
+      saveState();
+    }
+  }
+
+  // ---- Init ----
+  render();
+</script>
+</body>
+</html>
