@@ -477,13 +477,20 @@
   }
 
   // ---- Day boundary logic: 3am ----
+  function toLocalDateStr(d) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
   function getStudyDay(timestamp) {
     const d = new Date(timestamp);
     // If before 3am, it belongs to the previous calendar day
     if (d.getHours() < 3) {
       d.setDate(d.getDate() - 1);
     }
-    return d.toISOString().slice(0, 10); // YYYY-MM-DD
+    return toLocalDateStr(d);
   }
 
   function getStudyDayLabel(dayStr) {
@@ -492,7 +499,7 @@
       const d = new Date();
       if (d.getHours() < 3) d.setDate(d.getDate() - 1);
       d.setDate(d.getDate() - 1);
-      return d.toISOString().slice(0, 10);
+      return toLocalDateStr(d);
     })();
 
     if (dayStr === today) return 'Today';
@@ -564,7 +571,7 @@
     let checkDate = new Date(d);
 
     for (let i = 0; i < 365; i++) {
-      const dayStr = checkDate.toISOString().slice(0, 10);
+      const dayStr = toLocalDateStr(checkDate);
       const dayData = days[dayStr];
 
       if (dayData && dayData.total >= goalMs) {
